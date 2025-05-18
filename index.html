@@ -139,6 +139,25 @@
         .comment { color: #5c6370; font-style: italic; }
         .number { color: #d19a66; }
         .operator { color: #56b6c2; }
+
+        footer {
+  background-color: #1e1e1e;
+  color: #ffffff;
+  text-align: center;
+  padding: 15px 0;
+  font-size: 24px;
+  font-weight: 800;
+  position: relative;
+  bottom: 0;
+  width: 100%;
+}
+
+footer .highlight {
+  color: #35b5a0;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
     </style>
 </head>
 <body>
@@ -1099,6 +1118,11 @@ gcc lex.yy.c -o lexer    # Compile the lexer
 ./lexer < input.c        # Run it with input
 */</span></pre>
     </div>
+
+ <footer>
+    <p>Developed and Maintained by <span class="highlight">VIPER_RKO🐉&gt;&gt;&gt;</span></p>
+  </footer>
+
 
     <script>
         function copyCode(elementId) {
