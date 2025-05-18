@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Compiler Design Experiments</title>
+    <style>
+        :root {
+            --primary-color: #5fb9f5;
+            --secondary-color: #2c3e50;
+            --accent-color: #e74c3c;
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-color: #333;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        h1 {
+            color: var(--secondary-color);
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 2.5rem;
+            position: relative;
+            padding-bottom: 15px;
+        }
+
+        h1::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 4px;
+            background-color: var(--primary-color);
+            border-radius: 2px;
+        }
+
+        .program-container {
+            background-color: var(--card-bg);
+            color: #abb2bf;
+            padding: 25px;
+            border-radius: var(--border-radius);
+            margin-bottom: 30px;
+            
+            position: relative;
+            
+            box-shadow: var(--box-shadow);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .program-container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .program-container h2 {
+            color: var(--secondary-color);
+            margin-top: 0;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        pre {
+            margin: 15px 0;
+            font-family: 'Fira Code', 'Courier New', monospace;
+            white-space: pre;
+            tab-size: 4;
+            overflow-x: auto;
+            padding: 15px;
+            background-color: #282c34;
+            border-radius: var(--border-radius);
+            position: relative;
+            line-height: 1.5;
+        }
+
+    
+
+        .copy-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .copy-btn:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .copy-btn:active {
+            transform: translateY(0);
+        }
+
+        .copy-btn::before {
+            content: "📋";
+        }
+
+        .copy-btn.copied::before {
+            content: "✓";
+        }
+
+        @media (max-width: 768px) {
+            .program-container {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+        }
+
+        /* Syntax highlighting for code */
+        .keyword { color: #c678dd; }
+        .header { color: #e06c75; }
+        .string { color: #98c379; }
+        .comment { color: #5c6370; font-style: italic; }
+        .number { color: #d19a66; }
+        .operator { color: #56b6c2; }
+    </style>
+</head>
+<body>
+    <h1>Compiler Design Experiments</h1>
+
+    <!-- Experiment 1 -->
+    <div class="program-container">
+        <h2>Experiment 1: Tokens and Symbol Table Creation</h2>
+        <button class="copy-btn" onclick="copyCode('code1')">Copy Code</button>
+        <pre id="code1"><span class="header">#include &lt;stdio.h&gt;</span>
+<span class="header">#include &lt;ctype.h&gt;</span>
+<span class="header">#include &lt;stdlib.h&gt;</span>
+<span class="header">#include &lt;string.h&gt;</span>
+
+#define MAX_SYMBOLS 30
+
+int is_keyword(const char *str) {
+    const char *keywords[] = {"int", "float", "char", ";", "if", "else", "while", "return", "for"};
+    int num_keywords = 9;
+
+    for (int i = 0; i < num_keywords; i++) {
+        if (strcmp(str, keywords[i]) == 0)
+            return 1;
+    }
+    return 0;
+}
+
+int get_data_size(const char *datatype) {
+    if (strcmp(datatype, "int") == 0) return 4;
+    if (strcmp(datatype, "float") == 0) return 4;
+    if (strcmp(datatype, "char") == 0) return 1;
+    return 0;
+}
+
+int main() {
+    char buffer[100];
+    char c;
+    char current_datatype[10] = "";
+    int i = 0, n = 0;
+    int address = 1000;
+
+    printf("Enter the expression:\n");
+    scanf(" %[^\n]s", buffer);
+    n = strlen(buffer);
+
+    printf("\nSymbol Table:\n");
+    printf("Symbol\t\tAddress\t\tType\n");
+
+    while (i < n) {
+        c = buffer[i];
+
+        if (isspace(c)) {
+            i++;
+            continue;
+        }
+
+        if (isalpha(c)) {
+            char word[20];
+            int k = 0;
+
+            while (isalnum(c) || c == '_') {
+                word[k++] = c;
+                c = buffer[++i];
+            }
+            word[k] = '\0';
+
+            if (is_keyword(word)) {
+                printf("%s \t\t<-- keyword\n", word);
+                strcpy(current_datatype, word);
+            } else {
+                if (strlen(current_datatype) > 0) {
+                    printf("%s\t\t%d\t\t%s\n", word, address, current_datatype);
+                    address += get_data_size(current_datatype);
+                } else {
+                    printf("%s\t\t<-- identifier\n", word);
+                }
+            }
+        }
+        else if (isdigit(c)) {
+            char num[20];
+            int k = 0;
+
+            while (isdigit(c) || c == '.') {
+                num[k++] = c;
+                c = buffer[++i];
+            }
+            num[k] = '\0';
+            printf("%s \t\t<-- constant\n", num);
+        }
+        else if (strchr("+-*/%=", c)) {
+            printf("%c \t\t<-- operator\n", c);
+            i++;
+        }
+        else if (c == '(' || c == ')' || c == '[' || c == ']' || c == '{' || c == '}') {
+            printf("%c \t\t<-- separator\n", c);
+            i++;
+        }
+        else if (c == ';') {
+            printf("%c \t\t<-- terminator\n", c);
+            i++;
+        }
+        else {
+            i++;
+        }
+    }
+
+    return 0;
+}</pre>
+    </div>
+
+    <!-- Experiment 2 -->
+    <div class="program-container">
+        <h2>Experiment 2: NFA from RE</h2>
+        <button class="copy-btn" onclick="copyCode('code2')">Copy Code</button>
+        <pre id="code2"><span class="header">#include &lt;stdio.h&gt;</span>
+<span class="header">#include &lt;stdlib.h&gt;</span>
+<span class="header">#include &lt;string.h&gt;</span>
+
+#define MAX 100
+
+int state = 0;
+
+typedef struct {
+    int start;
+    int end;
+} NFA;
+
+typedef struct {
+    int from;
+    char symbol;
+    int to;
+} Transition;
+
+Transition transitions[MAX];
+int t_count = 0;
+
+NFA stack[MAX];
+int top = -1;
+
+void push(NFA nfa) {
+    stack[++top] = nfa;
+}
+
+NFA pop() {
+    return stack[top--];
+}
+
+void addTransition(int from, char symbol, int to) {
+    transitions[t_count].from = from;
+    transitions[t_count].symbol = symbol;
+    transitions[t_count].to = to;
+    t_count++;
+}
+
+NFA create_basic_nfa(char symbol) {
+    NFA nfa;
+    nfa.start = state++;
+    nfa.end = state++;
+    addTransition(nfa.start, symbol, nfa.end);
+    return nfa;
+}
+
+NFA apply_union(NFA nfa1, NFA nfa2) {
+    NFA result;
+    result.start = state++;
+    result.end = state++;
+    addTransition(result.start, 'ε', nfa1.start);
+    addTransition(result.start, 'ε', nfa2.start);
+    addTransition(nfa1.end, 'ε', result.end);
+    addTransition(nfa2.end, 'ε', result.end);
+    return result;
+}
+
+NFA apply_concat(NFA nfa1, NFA nfa2) {
+    addTransition(nfa1.end, 'ε', nfa2.start);
+    NFA result = { nfa1.start, nfa2.end };
+    return result;
+}
+
+NFA apply_kleene(NFA nfa) {
+    NFA result;
+    result.start = state++;
+    result.end = state++;
+    addTransition(result.start, 'ε', nfa.start);
+    addTransition(result.start, 'ε', result.end);
+    addTransition(nfa.end, 'ε', nfa.start);
+    addTransition(nfa.end, 'ε', result.end);
+    return result;
+}
+
+void construct_nfa_from_postfix(char* postfix) {
+    for (int i = 0; postfix[i] != '\0'; i++) {
+        char c = postfix[i];
+        if (c == 'a' || c == 'b') {
+            push(create_basic_nfa(c));
+        } else if (c == '.') {
+            NFA nfa2 = pop();
+            NFA nfa1 = pop();
+            push(apply_concat(nfa1, nfa2));
+        } else if (c == '|') {
+            NFA nfa2 = pop();
+            NFA nfa1 = pop();
+            push(apply_union(nfa1, nfa2));
+        } else if (c == '*') {
+            NFA nfa = pop();
+            push(apply_kleene(nfa));
+        }
+    }
+}
+
+void display_nfa(NFA result) {
+    printf("\nStart State: %d\nEnd State: %d\n", result.start, result.end);
+    printf("Transitions:\n");
+    for (int i = 0; i < t_count; i++) {
+        printf("  %d -- %c --> %d\n", transitions[i].from, transitions[i].symbol, transitions[i].to);
+    }
+}
+
+int main() {
+    char postfix[50];
+    printf("Enter regex in postfix (e.g., ab.|a*): ");
+    scanf("%s", postfix);
+    construct_nfa_from_postfix(postfix);
+    NFA result = pop();
+    display_nfa(result);
+    return 0;
+}</pre>
+    </div>
+
+    <!-- Experiment 3 -->
+    <div class="program-container">
+        <h2>Experiment 3: Epsilon Closure of NFA</h2>
+        <button class="copy-btn" onclick="copyCode('code3')">Copy Code</button>
+        <pre id="code3"><span class="header">#include &lt;stdio.h&gt;</span>
+<span class="header">#include &lt;stdlib.h&gt;</span>
+<span class="header">#include &lt;stdbool.h&gt;</span>
+
+#define MAX_STATES 100
+#define MAX_TRANSITIONS 100
+
+typedef struct {
+    int start;
+    int end;
+    char symbol;  // '#' represents epsilon (ε)
+} Transition;
+
+typedef struct {
+    int states;
+    int transition_count;
+    Transition transitions[MAX_TRANSITIONS];
+} NFA;
+
+void initialize_visited(bool visited[], int size) {
+    for (int i = 0; i < size; i++) {
+        visited[i] = false;
+    }
+}
+
+void epsilon_closure_recursive(NFA *nfa, int state, bool visited[]) {
+    visited[state] = true;
+
+    for (int i = 0; i < nfa->transition_count; i++) {
+        if (nfa->transitions[i].start == state && nfa->transitions[i].symbol == '#') {
+            if (!visited[nfa->transitions[i].end]) {
+                epsilon_closure_recursive(nfa, nfa->transitions[i].end, visited);
+            }
+        }
+    }
+}
+
+void compute_epsilon_closure(NFA *nfa) {
+    printf("\nEpsilon closure of states in NFA:\n");
+
+    for (int i = 0; i < nfa->states; i++) {
+        bool visited[MAX_STATES];
+        initialize_visited(visited, MAX_STATES);
+
+        epsilon_closure_recursive(nfa, i, visited);
+
+        printf("ε-closure(%d) : { ", i);
+        for (int j = 0; j < nfa->states; j++) {
+            if (visited[j]) {
+                printf("%d ", j);
+            }
+        }
+        printf("}\n");
+    }
+}
+
+int main() {
+    NFA nfa;
+
+    printf("Enter no. of states in the NFA: ");
+    scanf("%d", &nfa.states);
+
+    printf("Enter no. of transitions in the NFA: ");
+    scanf("%d", &nfa.transition_count);
+
+    printf("Enter transitions (start_state end_state symbol):\n");
+    for (int i = 0; i < nfa.transition_count; i++) {
+        scanf("%d %d %c", &nfa.transitions[i].start, &nfa.transitions[i].end, &nfa.transitions[i].symbol);
+    }
+
+    compute_epsilon_closure(&nfa);
+
+    return 0;
+}</pre>
+    </div>
+
+    <!-- Experiment 4 -->
+    <div class="program-container">
+        <h2>Experiment 4: First and Follow</h2>
+        <button class="copy-btn" onclick="copyCode('code4')">Copy Code</button>
+        <pre id="code4"><span class="header">#include &lt;stdio.h&gt;</span>
+<span class="header">#include &lt;string.h&gt;</span>
+
+#define MAX 100
+
+char production[MAX][MAX];
+char first[MAX][MAX];
+char follow[MAX][MAX];
+char nonTerminals[MAX];
+int ntCount = 0;
+int prodCount = 0;
+
+void addChar(char c, char *result) {
+    if(!strchr(result, c)) {
+        result[strlen(result)] = c;
+        result[strlen(result) + 1] = '\0';
+    }
+}
+
+int isNonTerminal(int c) {
+    return (c >= 65 && c <= 90);
+}
+
+void computeFirst(char c, char *result) {
+    if(!isNonTerminal(c)) {
+        addChar(c, result);
+        return;
+    }
+
+    for(int i = 0 ;i < prodCount; i++) {
+        if(production[i][0] == c) {
+            char *rhs = production[i] + 3;
+
+            if(rhs[0] == '#') {
+                addChar('#', result);
+            } else {
+                int j = 0;
+                while(rhs[j]) {
+                    char temp[MAX] = "";
+                    computeFirst(rhs[j], temp);
+
+                    for(int k = 0; temp[k]; k++) {
+                        if(temp[k] != '#') {
+                            addChar(temp[k], result);
+                        }
+                    }
+
+                    if(!strchr(temp , '#')) break;
+                    j++;
+                    if(!rhs[j]) {
+                        addChar('#', result);
+                    }
+                }
+            }
+        }
+    }
+}
+
+void computeFollow(char c, char *result) {
+    if (production[0][0] == c) {
+        addChar('$', result);
+    }
+
+    for (int i = 0; i < prodCount; i++) {
+        char *rhs = production[i] + 3;
+        int j = 0;
+        while (rhs[j]) {
+            if (rhs[j] == c) {
+                if (rhs[j + 1]) {
+                    char temp[MAX] = "";
+                    computeFirst(rhs[j + 1], temp);
+
+                    for (int k = 0; temp[k]; k++) {
+                        if (temp[k] != '#') {
+                            addChar(temp[k], result);
+                        }
+                    }
+
+                    if (strchr(temp, '#') && production[i][0] != c) {
+                        computeFollow(production[i][0], result);
+                    }
+                } else {
+                    if (production[i][0] != c) {
+                        computeFollow(production[i][0], result);
+                    }
+                }
+            }
+            j++;
+        }
+    }
+}
+
+int main() {
+    printf("Enter no.of.production: ");
+    scanf("%d", &prodCount);
+    getchar();
+
+    for(int i = 0; i < prodCount; i++) {
+        printf("Enter production %d (like A->aB): ", i + 1);
+        fgets(production[i], sizeof(production[i]), stdin);
+        production[i][strcspn(production[i], "\n")] = '\0';
+
+        if(!strchr(nonTerminals, production[i][0])) {
+            nonTerminals[ntCount++] = production[i][0];
+        }
+    }
+
+    printf("First Sets:\n");
+    for(int i = 0; i < ntCount; i++) {
+        first[i][0] = '\0';
+        computeFirst(nonTerminals[i], first[i]);
+
+        printf("FIRST(%c) = { ", nonTerminals[i]);
+        for (int j = 0; first[i][j]; j++) {
+            printf("%c ", first[i][j]);
+        }
+        printf("}\n");
+    }
+
+    printf("Follow Sets:\n");
+    for(int i = 0; i < ntCount; i++) {
+        follow[i][0] = '\0';
+        computeFollow(nonTerminals[i], follow[i]);
+
+        printf("FOLLOW(%c) = { ", nonTerminals[i]);
+        for (int j = 0; follow[i][j]; j++) {
+            printf("%c ", follow[i][j]);
+        }
+        printf("}\n");
+    }
+
+    return 0;
+}</pre>
+    </div>
+
+    <!-- Experiment 5 -->
+    <div class="program-container">
+        <h2>Experiment 5: Predictive Parser</h2>
+        <button class="copy-btn" onclick="copyCode('code5')">Copy Code</button>
+        <pre id="code5"><span class="header">#include &lt;stdio.h&gt;</span>
+<span class="header">#include &lt;string.h&gt;</span>
+#define MAX 100
+
+char production[MAX][MAX];
+char first[MAX][MAX];
+char follow[MAX][MAX];
+char nonTerminals[MAX];
+char terminals[MAX];
+char parsingTable[MAX][MAX][MAX];
+
+int ntCount = 0;
+int termCount = 0;
+int prodCount = 0;
+
+void addChar(char c, char *result) {
+    if (!strchr(result, c)) {
+        int len = strlen(result);
+        result[len] = c;
+        result[len + 1] = '\0';
+    }
+}
+
+void addTerminal(char c) {
+    if (!strchr(terminals, c) && c != '#' && !(c >= 'A' && c <= 'Z')) {
+        terminals[termCount++] = c;
+    }
+}
+
+int isNonTerminal(int c) {
+    return (c >= 65 && c <= 90);
+}
+
+void computeFirst(char c, char *result) {
+    if (!isNonTerminal(c)) {
+        addChar(c, result);
+        addTerminal(c); // collect terminals
+        return;
+    }
+
+    for (int i = 0; i < prodCount; i++) {
+        if (production[i][0] == c) {
+            char *rhs = production[i] + 3;
+            if (rhs[0] == '#') {
+                addChar('#', result);
+            } else {
+                int j = 0;
+                while (rhs[j]) {
+                    char temp[MAX] = "";
+                    computeFirst(rhs[j], temp);
+
+                    for (int k = 0; temp[k]; k++) {
+                        if (temp[k] != '#') {
+                            addChar(temp[k], result);
+                        }
+                    }
+
+                    if (!strchr(temp, '#'))
+                        break;
+
+                    j++;
+                    if (!rhs[j]) {
+                        addChar('#', result);
+                    }
+                }
+            }
+        }
+    }
+}
+
+void computeFollow(char c, char *result) {
+    if (production[0][0] == c) {
+        addChar('$', result);
+    }
+
+    for (int i = 0; i < prodCount; i++) {
+        char *rhs = production[i] + 3;
+        int j = 0;
+        while (rhs[j]) {
+            if (rhs[j] == c) {
+                if (rhs[j + 1]) {
+                    char temp[MAX] = "";
+                    computeFirst(rhs[j + 1], temp);
+
+                    for (int k = 0; temp[k]; k++) {
+                        if (temp[k] != '#') {
+                            addChar(temp[k], result);
+                        }
+                    }
+
+                    if (strchr(temp, '#') && production[i][0] != c) {
+                        computeFollow(production[i][0], result);
+                    }
+                } else {
+                    if (production[i][0] != c) {
+                        computeFollow(production[i][0], result);
+                    }
+                }
+            }
+            j++;
+        }
+    }
+}
+
+void createParsingTable() {
+    for (int i = 0; i < prodCount; i++) {
+        char nt = production[i][0];
+        char *rhs = production[i] + 3;
+        char tempFirst[MAX] = "";
+        computeFirst(rhs[0], tempFirst);
+
+        for (int k = 0; tempFirst[k]; k++) {
+            if (tempFirst[k] != '#') {
+                int row = strchr(nonTerminals, nt) - nonTerminals;
+                int col = strchr(terminals, tempFirst[k]) - terminals;
+                strcpy(parsingTable[row][col], production[i]);
+            }
+        }
+
+        if (strchr(tempFirst, '#')) {
+            char tempFollow[MAX] = "";
+            computeFollow(nt, tempFollow);
+            for (int k = 0; tempFollow[k]; k++) {
+                int row = strchr(nonTerminals, nt) - nonTerminals;
+                int col = strchr(terminals, tempFollow[k]) - terminals;
+                strcpy(parsingTable[row][col], production[i]);
+            }
+        }
+    }
+}
+
+void displayParsingTable() {
+    printf("\nPredictive Parsing Table:\n\n");
+    printf("%10s", "");
+    for (int j = 0; j < termCount; j++) {
+        printf("%10c", terminals[j]);
+    }
+    printf("\n");
+
+    for (int i = 0; i < ntCount; i++) {
+        printf("%10c", nonTerminals[i]);
+        for (int j = 0; j < termCount; j++) {
+            if (strlen(parsingTable[i][j]) > 0)
+                printf("%10s", parsingTable[i][j]);
+            else
+                printf("%10s", "-");
+        }
+        printf("\n");
+    }
+}
+
+int main() {
+    printf("Enter no.of.production: ");
+    scanf("%d", &prodCount);
+    getchar();
+
+    for (int i = 0; i < prodCount; i++) {
+        printf("Enter production %d (like A->aB): ", i + 1);
+        fgets(production[i], sizeof(production[i]), stdin);
+        production[i][strcspn(production[i], "\n")] = '\0';
+
+        if (!strchr(nonTerminals, production[i][0])) {
+            nonTerminals[ntCount++] = production[i][0];
+        }
+    }
+
+    printf("First Sets:\n");
+    for (int i = 0; i < ntCount; i++) {
+        first[i][0] = '\0';
+        computeFirst(nonTerminals[i], first[i]);
+        printf("FIRST(%c) = { ", nonTerminals[i]);
+        for (int j = 0; first[i][j]; j++) {
+            printf("%c ", first[i][j]);
+        }
+        printf("}\n");
+    }
+
+    printf("Follow Sets:\n");
+    for (int i = 0; i < ntCount; i++) {
+        follow[i][0] = '\0';
+        computeFollow(nonTerminals[i], follow[i]);
+        printf("FOLLOW(%c) = { ", nonTerminals[i]);
+        for (int j = 0; follow[i][j]; j++) {
+            printf("%c ", follow[i][j]);
+        }
+        printf("}\n");
+    }
+
+    addTerminal('$');
+    createParsingTable();
+    displayParsingTable();
+
+    return 0;
+}</pre>
+    </div>
+
+    <!-- Experiment 6 -->
+    <div class="program-container">
+        <h2>Experiment 6: Three Address Code Generator (TAC)</h2>
+        <button class="copy-btn" onclick="copyCode('code6')">Copy Code</button>
+        <pre id="code6"><span class="header">#include &lt;stdio.h&gt;</span>
+<span class="header">#include &lt;stdlib.h&gt;</span>
+<span class="header">#include &lt;string.h&gt;</span>
+<span class="header">#include &lt;ctype.h&gt;</span>
+
+#define MAX 100
+
+int tempCount = 1;
+
+char* newTemp() {
+    static char temp[10];
+    sprintf(temp, "t%d", tempCount++);
+    return strdup(temp);
+}
+
+char* strStack[MAX];
+int topStr = -1;
+
+void pushStr(char* s) {
+    strStack[++topStr] = strdup(s);
+}
+
+char* popStr() {
+    return strStack[topStr--];
+}
+
+char opStack[MAX];
+int topOp = -1;
+
+void pushOp(char c) {
+    opStack[++topOp] = c;
+}
+
+char popOp() {
+    return opStack[topOp--];
+}
+
+char peekOp() {
+    return opStack[topOp];
+}
+
+int isEmptyOp() {
+    return topOp == -1;
+}
+
+int precedence(char op) {
+    if (op == '~') return 3;
+    if (op == '*' || op == '/') return 2;
+    if (op == '+' || op == '-') return 1;
+    return 0;
+}
+
+int isOperator(char c) {
+    return c == '+' || c == '-' || c == '*' || c == '/' || c == '~';
+}
+
+void applyOp(char op) {
+    if (op == '~') {
+        char* operand = popStr();
+        char* temp = newTemp();
+        printf("%s = uminus %s\n", temp, operand);
+        pushStr(temp);
+    } else {
+        char* right = popStr();
+        char* left = popStr();
+        char* temp = newTemp();
+        printf("%s = %s %c %s\n", temp, left, op, right);
+        pushStr(temp);
+    }
+}
+
+void generateTAC(char* expr) {
+    for (int i = 0; expr[i]; i++) {
+        char c = expr[i];
+
+        if (c == ' ') continue;
+
+        if (isalnum(c)) {
+            char var[2] = {c, '\0'};
+            pushStr(var);
+        } 
+        else if (c == '(') {
+            pushOp(c);
+        } 
+        else if (c == ')') {
+            while (peekOp() != '(') applyOp(popOp());
+            popOp();
+        } 
+        else if (isOperator(c)) {
+            if (c == '-' && (i == 0 || expr[i - 1] == '(' || isOperator(expr[i - 1]))) {
+                pushOp('~');
+            } else {
+                while (!isEmptyOp() && precedence(peekOp()) >= precedence(c))
+                    applyOp(popOp());
+                pushOp(c);
+            }
+        }
+    }
+
+    while (!isEmptyOp()) applyOp(popOp());
+}
+
+void process(char* input) {
+    char lhs, rhs[MAX];
+    sscanf(input, "%c = %[^\n]", &lhs, rhs);
+
+    printf("Input Expression: %s\n", input);
+    printf("Three Address Code:\n");
+    generateTAC(rhs);
+    char* result = popStr();
+    printf("%c = %s\n", lhs, result);
+}
+
+int main() {
+    char expr[MAX];
+    printf("Enter an expression (e.g., a = b * -c + b * -c):\n");
+    fgets(expr, MAX, stdin);
+    process(expr);
+    return 0;
+}</pre>
+    </div>
+
+    <!-- Experiment 7 -->
+    <div class="program-container">
+        <h2>Experiment 7: Optimization</h2>
+        <button class="copy-btn" onclick="copyCode('code7')">Copy Code</button>
+        <pre id="code7"><span class="header">#include &lt;stdio.h&gt;</span>
+<span class="header">#include &lt;string.h&gt;</span>
+<span class="header">#include &lt;stdlib.h&gt;</span>
+
+void optimizeStrengthReduction(char* expr) {
+    char var[10], op1[10], op2[10];
+    if (sscanf(expr, "%s = %s * %s", var, op1, op2) == 3) {
+        if (strcmp(op1, var) == 0 && strcmp(op2, "2") == 0) {
+            sprintf(expr, "%s = %s + %s", var, op1, op1);
+            printf("Optimized (strength reduction): %s\n", expr);
+            return;
+        }
+    }
+    printf("No strength reduction applied.\n");
+}
+
+int optimize(char* expr) {
+    char var[10], op1[10], op2[10];
+    if (sscanf(expr, "%s = %s + %s", var, op1, op2) == 3) {
+        if (strcmp(var, op1) == 0 && strcmp(op2, "0") == 0) {
+            sprintf(expr, "%s = %s", var, op1);
+            printf("Optimized (add zero removal): %s\n", expr);
+            return 1;
+        }
+    }
+    else if (sscanf(expr, "%s = %s * %s", var, op1, op2) == 3) {
+        if (strcmp(var, op1) == 0 && strcmp(op2, "1") == 0) {
+            sprintf(expr, "%s = %s", var, op1);
+            printf("Optimized: %s\n", expr);
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int optimizeConstantFoldOperator(char* expr) {
+    int lhs, rhs;
+    char var[10];
+    char op;
+
+    if (sscanf(expr, "%s = %d %c %d", var, &lhs, &op, &rhs) == 4) {
+        int result;
+        switch (op) {
+            case '+': result = lhs + rhs; break;
+            case '-': result = lhs - rhs; break;
+            case '*': result = lhs * rhs; break;
+            case '/':
+                if (rhs == 0) {
+                    printf("Error: Division by zero\n");
+                    return 0;
+                }
+                result = lhs / rhs;
+                break;
+            default:
+                return 0;
+        }
+        sprintf(expr, "%s = %d", var, result);
+        printf("Optimized (constant folding): %s\n", expr);
+        return 1;
+    }
+    return 0;
+}
+
+int main() {
+    char expr[100];
+
+    printf("Enter expressions to optimize (type 'exit' to quit):\n");
+
+    while (1) {
+        printf("\n> ");
+        fgets(expr, sizeof(expr), stdin);
+
+        expr[strcspn(expr, "\n")] = '\0';
+
+        if (strcmp(expr, "exit") == 0) {
+            break;
+        }
+
+        if (optimizeConstantFoldOperator(expr)) continue;
+        if (optimize(expr)) continue;
+        optimizeStrengthReduction(expr);
+    }
+
+    return 0;
+}</pre>
+    </div>
+
+    <!-- Experiment 8 -->
+    <div class="program-container">
+        <h2>Experiment 8: Assembly Code Generator</h2>
+        <button class="copy-btn" onclick="copyCode('code8')">Copy Code</button>
+        <pre id="code8"><span class="header">#include &lt;stdio.h&gt;</span>
+    
+typedef struct {
+    char result[5];
+    char arg1;
+    char op;
+    char arg2;
+} TAC;
+
+void generateAssembly(TAC tac[], int count) {
+    printf("\nAssembly Code:\n");
+    for (int i = 0; i < count; i++) {
+        printf("%s := %c %c %c\n", tac[i].result, tac[i].arg1, tac[i].op, tac[i].arg2);
+        printf("MOV R0, %c\n", tac[i].arg1);
+        switch (tac[i].op) {
+            case '+': printf("ADD R0, %c\n", tac[i].arg2); break;
+            case '-': printf("SUB R0, %c\n", tac[i].arg2); break;
+            case '*': printf("MUL R0, %c\n", tac[i].arg2); break;
+            case '/': printf("DIV R0, %c\n", tac[i].arg2); break;
+        }
+        printf("MOV %s, R0\n\n", tac[i].result);
+    }
+}
+
+int main() {
+    int count;
+    TAC tac[50];
+
+    printf("Enter number of TAC instructions: ");
+    scanf("%d", &count);
+
+    printf("Enter TAC in the form (result := arg1 op arg2):\n");
+    for (int i = 0; i < count; i++) {
+        scanf(" %s := %c %c %c", tac[i].result, &tac[i].arg1, &tac[i].op, &tac[i].arg2);
+    }
+
+    generateAssembly(tac, count);
+
+    return 0;
+}</pre>
+    </div>
+
+    <!-- Experiment 9 -->
+    <div class="program-container">
+        <h2>Experiment 9: LEX</h2>
+        <button class="copy-btn" onclick="copyCode('code9')">Copy Code</button>
+        <pre id="code9">tokens.l
+
+%{
+<span class="header">#include &lt;stdio.h&gt;</span>
+%}
+
+%%
+"int"           { printf("Keyword: int\n"); }
+"float"         { printf("Keyword: float\n"); }
+"return"        { printf("Keyword: return\n"); }
+[0-9]+\.[0-9]+  { printf("Float constant: %s\n", yytext); }
+[0-9]+          { printf("Integer constant: %s\n", yytext); }
+[a-zA-Z_][a-zA-Z0-9_]* { printf("Identifier: %s\n", yytext); }
+"="             { printf("Operator: =\n"); }
+"+"             { printf("Operator: +\n"); }
+"{"             { printf("Symbol: {\n"); }
+"}"             { printf("Symbol: }\n"); }
+";"             { printf("Symbol: ;\n"); }
+[ \t\n]+        { /* Ignore whitespace */ }
+.               { printf("Unknown character: %s\n", yytext); }
+%%
+
+int main() {
+    yylex();
+    return 0;
+}
+
+int yywrap()
+{
+    return 1;
+}
+    
+int main() {
+    int a = 10;
+    float b = 20.5;
+    a = a + b;
+    return 0;
+}
+        
+<span class="comment">/* Commands:
+lex tokens.l             # Generates lex.yy.c
+gcc lex.yy.c -o lexer    # Compile the lexer
+./lexer < input.c        # Run it with input
+*/</span></pre>
+    </div>
+
+    <script>
+        function copyCode(elementId) {
+            const codeElement = document.getElementById(elementId);
+            const range = document.createRange();
+            range.selectNode(codeElement);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            
+            try {
+                document.execCommand('copy');
+                selection.removeAllRanges();
+                
+                const btn = event.target;
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.classList.remove('copied');
+                }, 2000);
+            } catch (err) {
+                alert('Failed to copy: ' + err);
+            }
+        }
+    </script>
+</body>
+</html>
